@@ -139,7 +139,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
     <div class="grid">
       <div class="field full">
         <label for="nombre">Nombre del Paciente</label>
-        <input id="nombre" type="text" placeholder="Ej. Marcia Alejandra Ramos Casillas" autocomplete="off">
+        <input id="nombre" type="text" placeholder="Ej. Lorem Ipsum" autocomplete="off">
       </div>
       <div class="field">
         <label for="fecha">Fecha</label>
@@ -368,11 +368,12 @@ async function buscarPlantillas(alertar){
 (function(){ const c=LS.get('receta_tpl_cache',[]); if(c.length){ templates=templates.concat(c.map(t=>Object.assign({},t))); } })();
 
 // ---- fecha / edad ----
-(function(){ $('fecha').value=new Date().toISOString().slice(0,10); })();
+function todayLocal(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+(function(){ $('fecha').value=todayLocal(); })();
 function fmt(iso){ if(!iso) return ''; const [y,m,d]=iso.split('-'); return parseInt(d)+'/'+parseInt(m)+'/'+y; }
 function calcAge(dobIso, refIso){
   if(!dobIso) return null;
-  const dob=new Date(dobIso+'T00:00:00'), ref=new Date((refIso||new Date().toISOString().slice(0,10))+'T00:00:00');
+  const dob=new Date(dobIso+'T00:00:00'), ref=new Date((refIso||todayLocal())+'T00:00:00');
   let a=ref.getFullYear()-dob.getFullYear(); const m=ref.getMonth()-dob.getMonth();
   if(m<0||(m===0&&ref.getDate()<dob.getDate())) a--;
   return (isFinite(a)&&a>=0)?a:null;
@@ -478,7 +479,7 @@ async function imprimir(){
 }
 
 function fillDemo(){
-  $('nombre').value='Marcia Alejandra Ramos Casillas';
+  $('nombre').value='Lorem Ipsum';
   $('fnac').value='1975-12-31'; $('edad').value=calcAge('1975-12-31',$('fecha').value)||''; $('nota').value='';
   $('meds').innerHTML=''; medId=0; addMed('Metilfenidato 10 mg','Tomar 1 tableta VO c/24 hrs a las 07:00 hrs');
 }
