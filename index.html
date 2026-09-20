@@ -70,8 +70,8 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .h-cred{font-family:"Cormorant SC",serif;font-weight:500;font-size:2cqw;line-height:1.4;color:#1b2340;letter-spacing:.02em;white-space:nowrap}
 .hdr-name{flex:0 0 52%;max-width:52%}
 .hdr-name img{width:100%;display:block}
-.h-rule{margin-top:1.6cqw;height:.3cqw;
-  background:repeating-linear-gradient(to right,#1b2340 0 1.1cqw,transparent 1.1cqw 2cqw)}
+.h-rule{margin-top:1.6cqw;line-height:0}
+.h-rule svg{display:block}
 /* --- cuerpo --- */
 .r-nombre{position:absolute;top:28%;left:5.1%;right:36%;font-size:2.03cqw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .r-fechas{position:absolute;top:28%;left:65.7%;font-size:1.95cqw;line-height:1.55}
@@ -192,7 +192,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
               </div>
               <div class="hdr-name"><img id="nameImg" alt=""></div>
             </div>
-            <div class="h-rule" id="h-rule"></div>
+            <div class="h-rule" id="h-rule"><svg id="ruleSvg" height="7"><line id="ruleLine" x1="0" y1="3" x2="0" y2="3" stroke="#1b2340" stroke-width="4" stroke-dasharray="14 9"/></svg></div>
           </div>
 
           <div class="r-nombre"><span style="font-weight:400">Nombre del Paciente:</span> <span id="p-nombre"></span></div>
@@ -436,18 +436,33 @@ function fitLine(el,maxFrac){
 }
 function fitAll(){
   fitLine($('h-titulo'),0.41); fitLine($('h-l1'),0.41); fitLine($('h-l2'),0.41); fitLine($('h-l3'),0.41);
-  fitLine($('f-dir'),0.60); fitLine($('f-tel'),0.34);
+  fitLine($('f-dir'),0.60); fitLine($('f-tel'),0.34); updateRule();
 }
 function placeRule(){ /* la línea ahora va en flujo, siempre debajo del nombre */ }
-window.addEventListener('resize',()=>{autofit();fitAll();placeRule();});
+function updateRule(){
+  const box=$('h-rule'); if(!box) return; const rw=box.clientWidth; if(!rw) return;
+  const recW=$('receta').clientWidth||rw; const sw=Math.max(2, recW*0.004);
+  const svg=$('ruleSvg'), ln=$('ruleLine'); if(!svg||!ln) return;
+  svg.setAttribute('width',rw); svg.setAttribute('height', Math.ceil(sw*1.8));
+  ln.setAttribute('x1',0); ln.setAttribute('x2',rw);
+  ln.setAttribute('y1', sw); ln.setAttribute('y2', sw); ln.setAttribute('stroke-width', sw);
+  ln.setAttribute('stroke-dasharray', (recW*0.011).toFixed(1)+' '+(recW*0.009).toFixed(1));
+}
+window.addEventListener('resize',()=>{autofit();fitAll();placeRule();updateRule();});
 
 // ---- salida ----
 async function render(){
   try{ await document.fonts.ready; await document.fonts.load('600 40px "Cormorant SC"'); }catch(e){}
-  fitAll();
-  placeRule();
+  fitAll(); placeRule(); updateRule();
   const node=$('receta'); const scale=Math.max(2, 1872/node.offsetWidth);
-  const canvas=await html2canvas(node,{scale,backgroundColor:'#ffffff',useCORS:true,logging:false});
+  const canvas=await html2canvas(node,{scale,backgroundColor:'#ffffff',useCORS:true,logging:false,
+    onclone:(doc)=>{
+      try{ doc.documentElement.style.filter='none'; }catch(e){}
+      const s=doc.createElement('style');
+      s.textContent='html,body{filter:none !important;background:#fff !important} #receta{background:#fff !important} #receta *{filter:none !important;color:#1b2340 !important}';
+      doc.head.appendChild(s);
+    }
+  });
   return canvas.toDataURL('image/jpeg',0.92);
 }
 async function hacerPDF(modo){
@@ -455,8 +470,9 @@ async function hacerPDF(modo){
   try{
     const img=await render(); const {jsPDF}=window.jspdf;
     const carta=S.tamano==='carta';
-    const pdf=new jsPDF({orientation:carta?'portrait':'landscape',unit:'in',format:carta?[8.5,11]:[8.5,6.071]});
-    pdf.addImage(img,'JPEG',0,0, 8.5, carta?11:6.071);
+    const pdf=new jsPDF({orientation:'portrait',unit:'in',format:[8.5,11]});
+    if(carta){ pdf.addImage(img,'JPEG',0,0,8.5,11); }
+    else { pdf.addImage(img,'JPEG',0,0.35,8.5,6.071); } // media carta: arriba, tamaño real, resto en blanco
     const nombre=($('nombre').value.trim()||'Paciente').replace(/[^\w\sáéíóúñ]/gi,'').replace(/\s+/g,'_');
     const fname='Receta_'+nombre+'.pdf';
     if(modo==='share'){
@@ -470,9 +486,10 @@ async function hacerPDF(modo){
 async function imprimir(){
   sync(); const spin=$('spin'); $('spinTxt').textContent='Preparando impresión…'; spin.style.display='flex';
   try{
-    const img=await render(); const carta=S.tamano==='carta'; const pg=carta?'8.5in 11in':'8.5in 6.071in';
+    const img=await render(); const carta=S.tamano==='carta';
     const w=window.open('','_blank');
-    w.document.write('<html><head><title>Receta</title><style>@page{size:'+pg+';margin:0}html,body{margin:0}img{width:100%;display:block}</style></head><body><img src="'+img+'" onload="setTimeout(function(){window.print()},200)"></body></html>');
+    const imgCss = carta ? 'width:8.5in;height:11in;display:block' : 'width:8.5in;display:block;margin-top:0.35in';
+    w.document.write('<html><head><title>Receta</title><style>@page{size:8.5in 11in;margin:0}html,body{margin:0;background:#fff}img{'+imgCss+'}</style></head><body><img src="'+img+'" onload="setTimeout(function(){window.print()},200)"></body></html>');
     w.document.close();
   }catch(e){console.error(e);alert('No se pudo abrir la impresión.');}
   finally{ spin.style.display='none'; }
