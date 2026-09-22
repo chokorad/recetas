@@ -66,7 +66,8 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
   background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.18);
   container-type:inline-size;color:#1b2340;
   font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:300}
-.receta .wm{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;z-index:0;opacity:.85}
+.wmwrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:0;pointer-events:none;overflow:hidden}
+.receta .wm{width:100%;height:auto;pointer-events:none;opacity:.85}
 .receta .layer{position:absolute;inset:0;z-index:1}
 /* --- encabezado editable --- */
 .hdr{position:absolute;top:3%;left:3%;right:2.5%;z-index:1}
@@ -189,7 +190,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
     <div class="recinfo" id="recinfo"></div>
     <div class="paper-scroll">
       <div class="receta" id="receta">
-        <img class="wm" id="wm" alt="">
+        <div class="wmwrap"><img class="wm" id="wm" alt=""></div>
         <div class="layer">
           <div class="hdr">
             <div class="hdr-row">
