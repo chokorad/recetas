@@ -91,6 +91,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .r-sign{position:absolute;top:74.8%;left:50%;transform:translateX(-50%);width:36%;text-align:center}
 .r-sign img{width:68%;display:block;margin:0 auto}
 .r-sign .sline{border-top:3px solid #000;margin-top:.2cqw;width:100%}
+.r-sign .sname{margin-top:.6cqw;font-size:1.5cqw;color:#1b2340;line-height:1.15;white-space:nowrap}
 /* --- pie editable --- */
 .r-foot{position:absolute;left:4%;right:4%;bottom:2.4%;display:flex;justify-content:space-between;gap:3%;
   font-family:"Cormorant SC",serif;font-weight:500;font-size:2cqw;color:#1b2340;letter-spacing:.02em;white-space:nowrap}
@@ -207,7 +208,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
           <div class="r-fechas" id="p-fechas"></div>
           <div class="r-trat">Tratamiento:</div>
           <div class="r-body" id="p-body"></div>
-          <div class="r-sign"><img id="sigImg" alt=""><div class="sline"></div></div>
+          <div class="r-sign"><img id="sigImg" alt=""><div class="sline"></div><div class="sname" id="p-sname"></div></div>
           <div class="r-foot"><span id="f-dir"></span><span id="f-tel"></span></div>
         </div>
       </div>
@@ -453,7 +454,7 @@ function fitLine(el,maxFrac){
 }
 function fitAll(){
   fitLine($('h-titulo'),0.41); fitLine($('h-l1'),0.41); fitLine($('h-l2'),0.41); fitLine($('h-l3'),0.41);
-  fitLine($('f-dir'),0.60); fitLine($('f-tel'),0.34); updateRule();
+  fitLine($('f-dir'),0.60); fitLine($('f-tel'),0.34); fitLine($('p-sname'),0.5); updateRule();
 }
 function placeRule(){ /* la línea ahora va en flujo, siempre debajo del nombre */ }
 function updateRule(){
@@ -651,6 +652,7 @@ async function initFirma(){
 }
 
 // ---- init ----
+$('p-sname').textContent='Dr. Mario Humberto Quintero Peña';
 applySettings(); renderTplOptions(); addMed(); initFirma();
 try{ document.fonts.ready.then(()=>{ applySettings(); }); }catch(e){}
 window.addEventListener('load',()=>{ sync(); placeRule(); setTimeout(placeRule,400); buscarPlantillas(false); });
