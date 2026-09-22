@@ -54,6 +54,12 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .medrow .field{margin-bottom:8px}.medrow .field:last-child{margin-bottom:0}
 .medrow .rm{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;padding:4px 8px;border-radius:8px}
 .medrow .mtag{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.ctrlbox{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer}
+.ctrlbox input{width:auto;transform:scale(1.25);accent-color:var(--accent-2)}
+.recinfo{font-size:13px;font-weight:600;color:var(--accent-2);background:rgba(47,125,91,.10);border:1px solid rgba(47,125,91,.25);border-radius:10px;padding:9px 12px;margin-bottom:12px;display:none}
+.firmatoggle{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;margin-left:auto}
+.firmatoggle input{width:auto;transform:scale(1.2);accent-color:var(--accent-2)}
+.r-body .med.ctrl .mname::after{content:" — controlado (receta aparte)";font-size:.72em;color:#8a6d1f}
 .addbtn{width:100%;border:1.5px dashed var(--field-border);background:transparent;color:var(--accent-2);border-radius:12px;padding:12px;font:inherit;font-weight:700;cursor:pointer}
 .paper-scroll{overflow-x:auto}
 .receta{position:relative;width:100%;max-width:900px;margin:0 auto;aspect-ratio:1872/1337;
@@ -177,7 +183,9 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
     <div class="toolbar">
       <button class="tool" onclick="fillDemo()">Ejemplo</button>
       <button class="tool" onclick="limpiar()">Limpiar</button>
+      <label class="firmatoggle" id="firmaToggle" style="display:none"><input type="checkbox" id="firmaChk" checked onchange="setFirma(this.checked)"> Incluir firma</label>
     </div>
+    <div class="recinfo" id="recinfo"></div>
     <div class="paper-scroll">
       <div class="receta" id="receta">
         <img class="wm" id="wm" alt="">
@@ -385,15 +393,17 @@ function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 
 // ---- medicamentos ----
 let medId=0;
-function addMed(name,ind){
+function addMed(name,ind,ctrl){
   medId++;
   const div=document.createElement('div'); div.className='medrow';
   div.innerHTML='<button class="rm" title="Quitar" onclick="this.parentElement.remove();sync()">✕</button>'+
     '<div class="mtag">Medicamento</div>'+
     '<div class="field"><input class="m-name" placeholder="Medicamento y presentación (ej. Metilfenidato 10 mg)" value="'+esc(name)+'"></div>'+
-    '<div class="field"><input class="m-ind" placeholder="Indicación (ej. Tomar 1 tableta VO c/24 hrs a las 07:00 hrs)" value="'+esc(ind)+'"></div>';
+    '<div class="field"><input class="m-ind" placeholder="Indicación (ej. Tomar 1 tableta VO c/24 hrs a las 07:00 hrs)" value="'+esc(ind)+'"></div>'+
+    '<label class="ctrlbox"><input type="checkbox" class="m-ctrl"'+(ctrl?' checked':'')+'> Medicamento controlado (receta aparte)</label>';
   $('meds').appendChild(div);
   div.querySelectorAll('input').forEach(i=>i.addEventListener('input',sync));
+  div.querySelector('.m-ctrl').addEventListener('change',sync);
   sync();
 }
 
@@ -409,17 +419,24 @@ function sync(){
   if(dob){ fh+='<div>Fecha Nac.: '+fmt(dob)+'</div>'; if(et) fh+='<div>Edad: '+et+'</div>'; }
   else if(et){ fh+='<div>Edad: '+et+'</div>'; }
   $('p-fechas').innerHTML=fh;
-  // cuerpo
-  let html='';
+  // cuerpo (vista previa: muestra todos, marca los controlados)
+  let html=''; let nCtrl=0, nNorm=0;
   document.querySelectorAll('#meds .medrow').forEach(row=>{
     const n=row.querySelector('.m-name').value.trim(), ind=row.querySelector('.m-ind').value.trim();
     if(!n && !ind) return;
-    html+='<div class="med"><div class="l1"><span class="dash">–</span><span class="mname">'+esc(n)+'</span></div>';
+    const isC=row.querySelector('.m-ctrl').checked; if(isC)nCtrl++; else nNorm++;
+    html+='<div class="med'+(isC?' ctrl':'')+'"><div class="l1"><span class="dash">–</span><span class="mname">'+esc(n)+'</span></div>';
     if(ind) html+='<div class="mind">'+esc(ind)+'</div>';
     html+='</div>';
   });
   const nota=$('nota').value.trim(); if(nota) html+='<div class="nota">'+esc(nota)+'</div>';
   $('p-body').innerHTML=html; autofit();
+  // banner: cuántas recetas se generarán
+  const info=$('recinfo'); const total=(nNorm>0?1:0)+nCtrl;
+  if(nCtrl>0 && total>1){
+    info.style.display='block';
+    info.textContent='Se generarán '+total+' recetas: '+(nNorm>0?('1 general ('+nNorm+' medicamento'+(nNorm>1?'s':'')+') + '):'')+nCtrl+' controlada'+(nCtrl>1?'s':'')+' (una por medicamento). El PDF sale con '+total+' hojas.';
+  } else info.style.display='none';
 }
 ['nombre','edad','nota'].forEach(id=>$(id).addEventListener('input',sync));
 
@@ -451,6 +468,41 @@ function updateRule(){
 window.addEventListener('resize',()=>{autofit();fitAll();placeRule();updateRule();});
 
 // ---- salida ----
+// ---- agrupado de recetas (controlados aparte) ----
+function medGroups(){
+  const ctrl=[], normal=[];
+  document.querySelectorAll('#meds .medrow').forEach(row=>{
+    const n=row.querySelector('.m-name').value.trim(), ind=row.querySelector('.m-ind').value.trim();
+    if(!n && !ind) return;
+    (row.querySelector('.m-ctrl').checked?ctrl:normal).push({n,ind});
+  });
+  return {normal,ctrl};
+}
+function medBodyHTML(meds,nota){
+  let html='';
+  meds.forEach(m=>{
+    html+='<div class="med"><div class="l1"><span class="dash">–</span><span class="mname">'+esc(m.n)+'</span></div>';
+    if(m.ind) html+='<div class="mind">'+esc(m.ind)+'</div>';
+    html+='</div>';
+  });
+  if(nota) html+='<div class="nota">'+esc(nota)+'</div>';
+  return html;
+}
+function buildRecetas(){
+  const {normal,ctrl}=medGroups(); const nota=$('nota').value.trim(); const list=[];
+  if(normal.length) list.push(medBodyHTML(normal,nota));
+  ctrl.forEach((m,i)=> list.push(medBodyHTML([m], (!normal.length && i===0)?nota:'')));
+  if(!list.length) list.push(medBodyHTML([],nota));
+  return list;
+}
+// renderiza el receta con un cuerpo específico (para cada hoja) y restaura la vista previa
+async function renderBody(bodyHTML){
+  const box=$('p-body'); const saved=box.innerHTML;
+  box.innerHTML=bodyHTML; autofit();
+  const img=await render();
+  box.innerHTML=saved; autofit();
+  return img;
+}
 async function render(){
   try{ await document.fonts.ready; await document.fonts.load('600 40px "Cormorant SC"'); }catch(e){}
   fitAll(); placeRule(); updateRule();
@@ -466,13 +518,17 @@ async function render(){
   return canvas.toDataURL('image/jpeg',0.92);
 }
 async function hacerPDF(modo){
-  sync(); const spin=$('spin'); $('spinTxt').textContent= modo==='share'?'Preparando para compartir…':'Generando PDF…'; spin.style.display='flex';
+  sync(); const spin=$('spin'); const recetas=buildRecetas();
+  $('spinTxt').textContent=(modo==='share'?'Preparando para compartir…':'Generando PDF…')+(recetas.length>1?' ('+recetas.length+' hojas)':''); spin.style.display='flex';
   try{
-    const img=await render(); const {jsPDF}=window.jspdf;
-    const carta=S.tamano==='carta';
+    const {jsPDF}=window.jspdf; const carta=S.tamano==='carta';
     const pdf=new jsPDF({orientation:'portrait',unit:'in',format:[8.5,11]});
-    if(carta){ pdf.addImage(img,'JPEG',0,0,8.5,11); }
-    else { pdf.addImage(img,'JPEG',0,0.35,8.5,6.071); } // media carta: arriba, tamaño real, resto en blanco
+    for(let i=0;i<recetas.length;i++){
+      const img=await renderBody(recetas[i]);
+      if(i>0) pdf.addPage([8.5,11],'portrait');
+      if(carta) pdf.addImage(img,'JPEG',0,0,8.5,11);
+      else pdf.addImage(img,'JPEG',0,0.35,8.5,6.071);
+    }
     const nombre=($('nombre').value.trim()||'Paciente').replace(/[^\w\sáéíóúñ]/gi,'').replace(/\s+/g,'_');
     const fname='Receta_'+nombre+'.pdf';
     if(modo==='share'){
@@ -484,12 +540,18 @@ async function hacerPDF(modo){
   finally{ spin.style.display='none'; }
 }
 async function imprimir(){
-  sync(); const spin=$('spin'); $('spinTxt').textContent='Preparando impresión…'; spin.style.display='flex';
+  sync(); const spin=$('spin'); const recetas=buildRecetas();
+  $('spinTxt').textContent='Preparando impresión…'; spin.style.display='flex';
   try{
-    const img=await render(); const carta=S.tamano==='carta';
-    const w=window.open('','_blank');
+    const carta=S.tamano==='carta';
     const imgCss = carta ? 'width:8.5in;height:11in;display:block' : 'width:8.5in;display:block;margin-top:0.35in';
-    w.document.write('<html><head><title>Receta</title><style>@page{size:8.5in 11in;margin:0}html,body{margin:0;background:#fff}img{'+imgCss+'}</style></head><body><img src="'+img+'" onload="setTimeout(function(){window.print()},200)"></body></html>');
+    let body='';
+    for(let i=0;i<recetas.length;i++){
+      const img=await renderBody(recetas[i]);
+      body+='<div style="page-break-after:'+(i<recetas.length-1?'always':'auto')+'"><img src="'+img+'" style="'+imgCss+'"></div>';
+    }
+    const w=window.open('','_blank');
+    w.document.write('<html><head><title>Receta</title><style>@page{size:8.5in 11in;margin:0}html,body{margin:0;background:#fff}img{max-width:none}</style></head><body onload="setTimeout(function(){window.print()},400)">'+body+'</body></html>');
     w.document.close();
   }catch(e){console.error(e);alert('No se pudo abrir la impresión.');}
   finally{ spin.style.display='none'; }
@@ -498,7 +560,11 @@ async function imprimir(){
 function fillDemo(){
   $('nombre').value='Lorem Ipsum';
   $('fnac').value='1975-12-31'; $('edad').value=calcAge('1975-12-31',$('fecha').value)||''; $('nota').value='';
-  $('meds').innerHTML=''; medId=0; addMed('Metilfenidato 10 mg','Tomar 1 tableta VO c/24 hrs a las 07:00 hrs');
+  $('meds').innerHTML=''; medId=0;
+  addMed('Metilfenidato 10 mg','Tomar 1 tableta VO c/24 hrs a las 07:00 hrs', true);
+  addMed('Bupropión 150 mg','Tomar 1 tableta VO c/24 hrs por 30 días', true);
+  addMed('Paracetamol 500 mg','Tomar 1 tableta VO c/8 hrs si hay dolor', false);
+  addMed('Loratadina/Ambroxol','Tomar 10 mL VO c/12 hrs por 5 días', false);
 }
 function limpiar(){ $('nombre').value=''; $('fnac').value=''; $('edad').value=''; $('nota').value=''; $('meds').innerHTML=''; medId=0; addMed(); $('nombre').focus(); }
 function toggleTheme(){ const cur=document.documentElement.getAttribute('data-theme');
@@ -523,7 +589,14 @@ async function decSig(enc,pw){
   const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b642ab(enc.i)},key,b642ab(enc.c));
   return new TextDecoder().decode(pt);
 }
-function applyFirma(){ if(SIGN){$('sigImg').src=SIGN;$('sigImg').style.display='';} else {$('sigImg').removeAttribute('src');$('sigImg').style.display='none';} }
+let firmaOn=true;
+function applyFirma(){
+  const show = SIGN && firmaOn;
+  if(show){$('sigImg').src=SIGN;$('sigImg').style.display='';}
+  else {$('sigImg').removeAttribute('src');$('sigImg').style.display='none';}
+  const t=$('firmaToggle'); if(t) t.style.display = SIGN ? '' : 'none';
+}
+function setFirma(on){ firmaOn=on; try{$('firmaChk').checked=on;}catch(e){} applyFirma(); }
 function fileToSmallPng(file){
   return new Promise((res,rej)=>{ const r=new FileReader();
     r.onload=()=>{ const img=new Image(); img.onload=()=>{
