@@ -61,10 +61,17 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .qtyrow{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
 .qtyrow .m-qty{width:90px}
 .qtyrow .m-pcs{width:90px}
+.qtyrow .m-cont{width:auto;min-width:110px}
 .qtyrow .m-unit{width:auto;min-width:120px}
 .qtyrow .qtyunit{font-size:13px;font-weight:600;color:var(--muted)}
 .dom-toggle{margin-left:auto;font-size:12px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 .dom-toggle input{width:auto;transform:scale(1.2);accent-color:var(--accent-2)}
+.ac-wrap{position:relative}
+.ac-dd{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:45;background:var(--card);border:1.5px solid var(--field-border);border-radius:10px;box-shadow:var(--shadow);max-height:240px;overflow:auto;display:none}
+.ac-dd .it{padding:11px 13px;cursor:pointer;font-size:15px;border-bottom:1px solid var(--line)}
+.ac-dd .it:last-child{border-bottom:none}
+.ac-dd .it:hover,.ac-dd .it.sel{background:var(--field)}
+.ac-dd .it small{color:var(--muted);margin-left:6px}
 .grp-badge{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
 .grp-badge.ctrlg{background:rgba(217,83,79,.12);color:#b23b36;border:1px solid rgba(217,83,79,.35)}
 .grp-badge.anti{background:rgba(47,125,91,.12);color:#2f7d5b;border:1px solid rgba(47,125,91,.35)}
@@ -170,9 +177,11 @@ input.err,textarea.err{border-color:#d9534f !important;background:rgba(217,83,79
     <div class="grid">
       <div class="field full">
         <label for="nombre">Nombre del Paciente</label>
-        <input id="nombre" type="text" list="pac-cat" placeholder="Escribe o elige un paciente guardado" autocomplete="off">
-        <datalist id="pac-cat"></datalist>
-        <span class="hint">Los pacientes se guardan solos al generar la receta (nombre, fecha de nacimiento y domicilio).</span>
+        <div class="ac-wrap">
+          <input id="nombre" type="text" placeholder="Escribe o elige un paciente guardado" autocomplete="off">
+          <div id="pac-dd" class="ac-dd"></div>
+        </div>
+        <span class="hint">Escribe para buscar; los pacientes se guardan solos al generar la receta.</span>
       </div>
       <div class="field">
         <label for="fecha">Fecha</label>
@@ -462,16 +471,20 @@ function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 
 // ---- medicamentos ----
 let medId=0;
-const UNIDADES=['tabletas','cápsulas','comprimidos','mL','parches','ampolletas','sobres','gotas','óvulos','supositorios'];
-function addMed(name,ind,ctrl,qty,pcs,unit){
+const UNIDADES=['tabletas','cápsulas','comprimidos','mL','parches','ampolletas','sobres','gotas','óvulos','supositorios','unidades'];
+const CONTENEDORES=[{k:'caja',p:'cajas',f:true},{k:'frasco',p:'frascos',f:false},{k:'ampolleta',p:'ampolletas',f:true},{k:'tubo',p:'tubos',f:false},{k:'sobre',p:'sobres',f:false},{k:'vial',p:'viales',f:false},{k:'pieza',p:'piezas',f:true},{k:'bolsa',p:'bolsas',f:true},{k:'jeringa',p:'jeringas',f:true},{k:'inhalador',p:'inhaladores',f:false},{k:'blíster',p:'blísters',f:false}];
+function contInfo(k){ return CONTENEDORES.find(c=>c.k===k)||CONTENEDORES[0]; }
+function addMed(name,ind,ctrl,qty,pcs,unit,cont){
   medId++;
   const unopts=UNIDADES.map(u=>'<option'+(u===unit?' selected':'')+'>'+u+'</option>').join('');
+  const contopts=CONTENEDORES.map(c=>'<option value="'+c.k+'"'+((cont||'caja')===c.k?' selected':'')+'>'+c.p+'</option>').join('');
   const div=document.createElement('div'); div.className='medrow';
   div.innerHTML='<button class="rm" title="Quitar" onclick="this.parentElement.remove();sync()">✕</button>'+
     '<div class="mtag">Medicamento</div>'+
     '<div class="field"><input class="m-name" list="med-cat" placeholder="Medicamento y presentación (ej. Metilfenidato 10 mg)" value="'+esc(name)+'"></div>'+
     '<div class="field"><input class="m-ind" placeholder="Indicación (ej. Tomar 1 tableta VO c/24 hrs a las 07:00 hrs)" value="'+esc(ind)+'"></div>'+
-    '<div class="qtyrow"><input class="m-qty" type="number" min="1" step="1" inputmode="numeric" placeholder="Cajas" value="'+(qty?String(qty):'')+'"><span class="qtyunit">caja(s) de</span>'+
+    '<div class="qtyrow"><input class="m-qty" type="number" min="1" step="1" inputmode="numeric" placeholder="Cant." value="'+(qty?String(qty):'')+'">'+
+      '<select class="m-cont">'+contopts+'</select><span class="qtyunit">de</span>'+
       '<input class="m-pcs" type="number" min="1" step="1" inputmode="numeric" placeholder="Piezas" value="'+(pcs?String(pcs):'')+'">'+
       '<select class="m-unit">'+unopts+'</select></div>'+
     '<label class="ctrlbox"><input type="checkbox" class="m-ctrl"'+(ctrl?' checked':'')+'> Medicamento controlado (receta aparte)</label>'+
@@ -497,14 +510,16 @@ function numLetraF(n){
   if(n<1000){ const c=Math.floor(n/100),r=n%100; const C=['','ciento','doscientas','trescientas','cuatrocientas','quinientas','seiscientas','setecientas','ochocientas','novecientas']; return C[c]+(r? ' '+numLetraF(r):''); }
   return ''+n;
 }
-function medQtyText(qty,pcs,unit){
+function numLetra(n,fem){ let s=numLetraF(n); if(fem===false){ s=s.replace('veintiuna','veintiún').replace(/\buna\b/,'un'); } return s; }
+function medQtyText(qty,cont,pcs,unit){
   const n=parseInt(qty,10); if(isNaN(n)||n<1) return '';
-  let s=n+' ('+numLetraF(n)+') '+(n===1?'caja':'cajas');
+  const c=contInfo(cont||'caja');
+  let s=n+' ('+numLetra(n,c.f)+') '+(n===1?c.k:c.p);
   const p=parseInt(pcs,10);
   if(!isNaN(p)&&p>=1) s+=' de '+p+' '+(unit||'tabletas');
   return s;
 }
-function rowQtyText(row){ return medQtyText(row.querySelector('.m-qty').value, row.querySelector('.m-pcs')?row.querySelector('.m-pcs').value:'', row.querySelector('.m-unit')?row.querySelector('.m-unit').value:''); }
+function rowQtyText(row){ return medQtyText(row.querySelector('.m-qty').value, row.querySelector('.m-cont')?row.querySelector('.m-cont').value:'caja', row.querySelector('.m-pcs')?row.querySelector('.m-pcs').value:'', row.querySelector('.m-unit')?row.querySelector('.m-unit').value:''); }
 
 function edadTxt(){
   const e=$('edad').value.trim(); if(!e) return '';
@@ -727,7 +742,7 @@ function fillDemo(){
   addMed('Metilfenidato 10 mg','Tomar 1 tableta VO c/24 hrs a las 07:00 hrs', true, 1, 30, 'tabletas');
   addMed('Bupropión 150 mg','Tomar 1 tableta VO c/24 hrs por 30 días', true, 2, 30, 'tabletas');
   addMed('Paracetamol 500 mg','Tomar 1 tableta VO c/8 hrs si hay dolor', false, 1, 20, 'tabletas');
-  addMed('Loratadina/Ambroxol','Tomar 10 mL VO c/12 hrs por 5 días', false, 1, 120, 'mL');
+  addMed('Loratadina/Ambroxol','Tomar 10 mL VO c/12 hrs por 5 días', false, 1, 120, 'mL', 'frasco');
 }
 function limpiar(){ $('nombre').value=''; $('fnac').value=''; $('edad').value=''; $('nota').value=''; $('dom').value=''; $('dx').value=''; document.querySelectorAll('.err').forEach(e=>e.classList.remove('err')); $('meds').innerHTML=''; medId=0; addMed(); $('nombre').focus(); }
 function toggleTheme(){ const cur=document.documentElement.getAttribute('data-theme');
@@ -828,17 +843,30 @@ function guardarPacienteActual(){ const nombre=$('nombre').value.trim(); if(!nom
   const all=pacientes(); all[norm(nombre)]={nombre, fnac:$('fnac').value||'', dom:$('dom').value.trim()||'', ts:Date.now()};
   dbSet('receta_pacientes',all); refreshPacCat(); cloudPush('pacientes'); }
 function autoFillMed(row){ const m=medsCat()[norm(row.querySelector('.m-name').value)]; if(!m) return;
-  const ind=row.querySelector('.m-ind'), pcs=row.querySelector('.m-pcs'), unit=row.querySelector('.m-unit'), ctrl=row.querySelector('.m-ctrl');
+  const ind=row.querySelector('.m-ind'), pcs=row.querySelector('.m-pcs'), unit=row.querySelector('.m-unit'), cont=row.querySelector('.m-cont'), ctrl=row.querySelector('.m-ctrl');
   if(m.ind && !ind.value) ind.value=m.ind;
   if(m.pcs && !pcs.value) pcs.value=m.pcs;
   if(m.unit) unit.value=m.unit;
+  if(m.cont && cont) cont.value=m.cont;
   if(m.ctrl) ctrl.checked=true;
   sync(); }
 function saveMedFromRow(row){ const nombre=row.querySelector('.m-name').value.trim(); if(!nombre) return;
-  const all=medsCat(); all[norm(nombre)]={nombre, ind:row.querySelector('.m-ind').value.trim()||'', pcs:row.querySelector('.m-pcs').value||'', unit:row.querySelector('.m-unit').value||'', ctrl:row.querySelector('.m-ctrl').checked, ts:Date.now()};
+  const all=medsCat(); all[norm(nombre)]={nombre, ind:row.querySelector('.m-ind').value.trim()||'', pcs:row.querySelector('.m-pcs').value||'', unit:row.querySelector('.m-unit').value||'', cont:row.querySelector('.m-cont')?row.querySelector('.m-cont').value:'caja', ctrl:row.querySelector('.m-ctrl').checked, ts:Date.now()};
   dbSet('receta_meds',all); refreshMedCat(); cloudPush('meds'); }
-$('nombre').addEventListener('change',autoFillPaciente);
-$('nombre').addEventListener('blur',autoFillPaciente);
+// buscador de pacientes con menú desplegable de coincidencias
+function pacMatches(q){ q=norm(q); if(!q) return []; return Object.values(pacientes()).filter(p=>norm(p.nombre).indexOf(q)>=0).sort((a,b)=>a.nombre.localeCompare(b.nombre)).slice(0,8); }
+function showPacDD(){ const dd=$('pac-dd'); const list=pacMatches($('nombre').value);
+  if(!list.length){ dd.style.display='none'; return; }
+  dd.innerHTML=list.map(p=>'<div class="it" data-k="'+esc(norm(p.nombre))+'">'+esc(p.nombre)+(p.fnac?'<small>'+fmt(p.fnac)+'</small>':'')+'</div>').join('');
+  dd.style.display='block';
+  dd.querySelectorAll('.it').forEach(el=>el.addEventListener('mousedown',e=>{ e.preventDefault(); pickPac(el.dataset.k); }));
+}
+function pickPac(key){ const p=pacientes()[key]; if(!p) return; $('nombre').value=p.nombre;
+  if(p.fnac){ $('fnac').value=p.fnac; const a=calcAge(p.fnac,$('fecha').value); if(a!=null)$('edad').value=a; }
+  $('dom').value=p.dom||''; $('pac-dd').style.display='none'; sync(); }
+$('nombre').addEventListener('input',showPacDD);
+$('nombre').addEventListener('focus',showPacDD);
+$('nombre').addEventListener('blur',()=>{ setTimeout(()=>{ const dd=$('pac-dd'); if(dd) dd.style.display='none'; },150); autoFillPaciente(); });
 // exportar / importar respaldo
 function exportarDatos(){
   const data={pacientes:pacientes(), meds:medsCat(), settings:LS.get('receta_settings',{})};
@@ -911,18 +939,35 @@ async function loadFirebase(){
   await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
 }
 function mergeByTs(local,remote){ const out=Object.assign({},local); Object.keys(remote||{}).forEach(k=>{ if(!out[k] || (remote[k].ts||0)>(out[k].ts||0)) out[k]=remote[k]; }); return out; }
+let _fbPushing=false;
+async function applyRemoteDoc(d){
+  d=d||{};
+  if(d.meds){ let rem={}; try{rem=JSON.parse(d.meds);}catch(e){} dbSet('receta_meds', mergeByTs(medsCat(),rem)); refreshMedCat(); }
+  if(d.ctrl){ let rem={}; try{rem=JSON.parse(d.ctrl);}catch(e){} dbSet('receta_ctrl', Object.assign(dbGet('receta_ctrl'),rem)); if($('ctrl-list')) renderCtrlList(); refreshDetectAll(); }
+  if(d.pacientes){ try{ const dec=await decSig(d.pacientes,FB_PW); const rem=JSON.parse(dec); dbSet('receta_pacientes', mergeByTs(pacientes(),rem)); refreshPacCat(); }
+    catch(e){ const m=$('fb-msg'); if(m)m.textContent='Conectado, pero la contraseña de cifrado no coincide con la del otro dispositivo (los pacientes no se leyeron).'; } }
+}
 async function fbPull(){
   if(!fbUser||!fbDb) return;
   const snap=await fbDb.collection('users').doc(fbUser.uid).get();
-  if(!snap.exists) return; const d=snap.data();
-  if(d.meds){ let rem={}; try{rem=JSON.parse(d.meds);}catch(e){} dbSet('receta_meds', mergeByTs(medsCat(),rem)); refreshMedCat(); }
-  if(d.ctrl){ let rem={}; try{rem=JSON.parse(d.ctrl);}catch(e){} dbSet('receta_ctrl', Object.assign(dbGet('receta_ctrl'),rem)); if($('ctrl-list')) renderCtrlList(); refreshDetectAll(); }
-  if(d.pacientes){ try{ const dec=await decSig(d.pacientes,FB_PW); const rem=JSON.parse(dec); dbSet('receta_pacientes', mergeByTs(pacientes(),rem)); refreshPacCat(); }catch(e){ console.warn('pacientes: contraseña no coincide',e); } }
+  if(snap.exists) await applyRemoteDoc(snap.data());
 }
 async function fbPush(){
   if(!fbUser||!fbDb) return;
-  const encPac=await encSig(JSON.stringify(pacientes()),FB_PW);
-  await fbDb.collection('users').doc(fbUser.uid).set({ meds:JSON.stringify(medsCat()), ctrl:JSON.stringify(dbGet('receta_ctrl')), pacientes:encPac, ts:Date.now() },{merge:true});
+  _fbPushing=true;
+  try{
+    const encPac=await encSig(JSON.stringify(pacientes()),FB_PW);
+    await fbDb.collection('users').doc(fbUser.uid).set({ meds:JSON.stringify(medsCat()), ctrl:JSON.stringify(dbGet('receta_ctrl')), pacientes:encPac, ts:Date.now() },{merge:true});
+  }finally{ setTimeout(()=>{_fbPushing=false;},300); }
+}
+// escucha en tiempo real: cualquier cambio en la nube se aplica al instante
+function fbListen(){
+  if(!fbUser||!fbDb) return;
+  if(window._fbUnsub){ try{window._fbUnsub();}catch(e){} window._fbUnsub=null; }
+  window._fbUnsub=fbDb.collection('users').doc(fbUser.uid).onSnapshot(async snap=>{
+    if(_fbPushing) return;                 // ignora el eco de mi propia escritura
+    if(snap.exists) await applyRemoteDoc(snap.data());
+  }, err=>{ console.error('onSnapshot',err); const m=$('fb-msg'); if(m)m.textContent='Sync: '+(err.message||err.code||err); });
 }
 function fbInit(cfgTxt){ let cfg=JSON.parse(cfgTxt); if(!fbApp){ fbApp=firebase.initializeApp(cfg); fbDb=firebase.firestore(); } }
 async function fbConnect(){
@@ -944,8 +989,8 @@ async function fbConnect(){
     fbUser=cred.user; FB_PW=enc;
     LS.set('receta_fb',{cfg:cfgTxt}); try{ localStorage.setItem('receta_fb_enc',enc); }catch(e){}
     window.cloudSync={push:fbPush, pull:fbPull};
-    await fbPull(); await fbPush();
-    if(msg)msg.textContent='✓ Conectado como '+(fbUser.email||fbUser.uid)+' y sincronizado.';
+    await fbPull(); await fbPush(); fbListen();
+    if(msg)msg.textContent='✓ Conectado como '+(fbUser.email||fbUser.uid)+'. Sincronización en vivo activa.';
   }catch(e){ console.error(e); if(msg)msg.textContent='No se pudo conectar: '+(e.message||e.code||e); }
 }
 async function fbLogout(){
@@ -963,8 +1008,8 @@ async function fbAuto(){
     try{ const r=await firebase.auth().getRedirectResult(); if(r&&r.user){ fbUser=r.user; FB_PW=enc; } }catch(e){}
     firebase.auth().onAuthStateChanged(async u=>{
       if(u){ fbUser=u; FB_PW=enc||FB_PW; window.cloudSync={push:fbPush,pull:fbPull};
-        const msg=$('fb-msg'); if(msg) msg.textContent='✓ Conectado como '+(u.email||u.uid);
-        try{ await fbPull(); }catch(e){} }
+        const msg=$('fb-msg'); if(msg) msg.textContent='✓ Conectado como '+(u.email||u.uid)+'. Sincronización en vivo activa.';
+        try{ await fbPull(); await fbPush(); }catch(e){} fbListen(); }
     });
   }catch(e){}
 }
