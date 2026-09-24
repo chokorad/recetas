@@ -5,8 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1b2340">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Receta">
 <title>Receta — Dr. Quintero</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600;700&display=swap" rel="stylesheet">
@@ -54,7 +58,21 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .medrow .field{margin-bottom:8px}.medrow .field:last-child{margin-bottom:0}
 .medrow .rm{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;padding:4px 8px;border-radius:8px}
 .medrow .mtag{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.qtyrow{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.qtyrow .m-qty{width:90px}
+.qtyrow .m-pcs{width:90px}
+.qtyrow .m-unit{width:auto;min-width:120px}
+.qtyrow .qtyunit{font-size:13px;font-weight:600;color:var(--muted)}
+.dom-toggle{margin-left:auto;font-size:12px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.dom-toggle input{width:auto;transform:scale(1.2);accent-color:var(--accent-2)}
+.grp-badge{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+.grp-badge.ctrlg{background:rgba(217,83,79,.12);color:#b23b36;border:1px solid rgba(217,83,79,.35)}
+.grp-badge.anti{background:rgba(47,125,91,.12);color:#2f7d5b;border:1px solid rgba(47,125,91,.35)}
+.ctrl-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
+.ctrl-item .g{font-weight:700;color:var(--muted);min-width:74px}
+.ctrl-item .x{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px}
 .ctrlbox{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer}
+input.err,textarea.err{border-color:#d9534f !important;background:rgba(217,83,79,.08)}
 .ctrlbox input{width:auto;transform:scale(1.25);accent-color:var(--accent-2)}
 .recinfo{font-size:13px;font-weight:600;color:var(--accent-2);background:rgba(47,125,91,.10);border:1px solid rgba(47,125,91,.25);border-radius:10px;padding:9px 12px;margin-bottom:12px;display:none}
 .firmatoggle{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;margin-left:auto}
@@ -80,7 +98,11 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 .h-rule{margin-top:1.6cqw;line-height:0}
 .h-rule svg{display:block}
 /* --- cuerpo --- */
-.r-nombre{position:absolute;top:28%;left:5.1%;right:36%;font-size:2.03cqw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-pac{position:absolute;top:27.5%;left:5.1%;right:37%;font-size:2.03cqw;line-height:1.3}
+.r-pac>div{margin-bottom:.45cqw}
+.r-nombre{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-dom,.r-dx{line-height:1.25}
+.r-dom .lb,.r-dx .lb{font-weight:400}
 .r-fechas{position:absolute;top:28%;left:65.7%;font-size:1.95cqw;line-height:1.55}
 .r-trat{position:absolute;top:39.6%;left:8%;font-size:2.46cqw}
 .r-body{position:absolute;top:45.6%;left:8%;right:5%;bottom:15%;font-size:2.03cqw;overflow:hidden}
@@ -98,7 +120,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
   font-family:"Cormorant SC",serif;font-weight:500;font-size:2cqw;color:#1b2340;letter-spacing:.02em;white-space:nowrap}
 /* ---- Carta completa (vertical 8.5x11) ---- */
 .receta.carta{aspect-ratio:8.5/11;max-width:680px}
-.receta.carta .r-nombre{top:17%}
+.receta.carta .r-pac{top:17%}
 .receta.carta .r-fechas{top:17%}
 .receta.carta .r-trat{top:24%}
 .receta.carta .r-body{top:29%;bottom:16%}
@@ -137,6 +159,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 <header>
   <div class="dot">℞</div>
   <div style="flex:1"><h1>Receta médica</h1><div class="sub" id="hsub">Dr. Mario Humberto Quintero Peña</div></div>
+  <button class="iconbtn" id="installBtn" onclick="instalarApp()" title="Instalar app" style="display:none">⬇️ App</button>
   <button class="iconbtn" onclick="toggleTheme()" title="Tema">🌓</button>
   <button class="iconbtn" onclick="openSettings()" title="Opciones">⚙️</button>
 </header>
@@ -147,7 +170,9 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
     <div class="grid">
       <div class="field full">
         <label for="nombre">Nombre del Paciente</label>
-        <input id="nombre" type="text" placeholder="Ej. Lorem Ipsum" autocomplete="off">
+        <input id="nombre" type="text" list="pac-cat" placeholder="Escribe o elige un paciente guardado" autocomplete="off">
+        <datalist id="pac-cat"></datalist>
+        <span class="hint">Los pacientes se guardan solos al generar la receta (nombre, fecha de nacimiento y domicilio).</span>
       </div>
       <div class="field">
         <label for="fecha">Fecha</label>
@@ -162,12 +187,24 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
         <input id="edad" type="text" inputmode="numeric" placeholder="Ej. 45" autocomplete="off">
         <span class="hint">Si pones Fecha de Nacimiento, la edad se calcula sola. Si solo pones edad, se omite la fecha de nacimiento.</span>
       </div>
+      <div class="field full">
+        <label style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Domicilio del paciente
+          <span class="dom-toggle"><input type="checkbox" id="dom-show"> Mostrar en la receta</span>
+        </label>
+        <input id="dom" type="text" placeholder="Calle, número, colonia, ciudad" autocomplete="off">
+        <span class="hint">Si el medicamento es controlado, el domicilio se incluye automáticamente aunque no marques la casilla.</span>
+      </div>
+      <div class="field full">
+        <label for="dx">Diagnóstico <span class="hint">(opcional)</span></label>
+        <input id="dx" type="text" placeholder="Ej. Trastorno por déficit de atención" autocomplete="off">
+      </div>
     </div>
   </div>
 
   <div class="card">
     <h2>Tratamiento</h2>
     <div id="meds"></div>
+    <datalist id="med-cat"></datalist>
     <button class="addbtn" onclick="addMed()">＋ Agregar medicamento</button>
     <div class="field full" style="margin-top:14px">
       <label for="nota">Indicaciones adicionales (opcional)</label>
@@ -205,7 +242,11 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
             <div class="h-rule" id="h-rule"><svg id="ruleSvg" height="4"></svg></div>
           </div>
 
-          <div class="r-nombre"><span style="font-weight:400">Nombre del Paciente:</span> <span id="p-nombre"></span></div>
+          <div class="r-pac" id="r-pac">
+            <div class="r-nombre"><span style="font-weight:400">Nombre del Paciente:</span> <span id="p-nombre"></span></div>
+            <div class="r-dom" id="p-dom" style="display:none"><span class="lb">Domicilio:</span> <span id="p-dom-t"></span></div>
+            <div class="r-dx" id="p-dx" style="display:none"><span class="lb">Diagnóstico:</span> <span id="p-dx-t"></span></div>
+          </div>
           <div class="r-fechas" id="p-fechas"></div>
           <div class="r-trat">Tratamiento:</div>
           <div class="r-body" id="p-body"></div>
@@ -255,7 +296,6 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
     <div class="sec">Pie de página</div>
     <div class="mrow"><label for="s-dir">Dirección</label><input id="s-dir" placeholder="Av. República de Panamá #499..."></div>
     <div class="mrow"><label for="s-tel">Teléfono</label><input id="s-tel" placeholder="6863638026"></div>
-    <div class="mrow" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="s-linea" style="width:auto"><label for="s-linea" style="margin:0">Mostrar línea separadora bajo el encabezado</label></div>
 
     <div class="sec">Firma (cifrada, solo en este dispositivo)</div>
     <div class="sub" style="margin:-4px 0 10px">Tu firma NO se guarda en la página pública. Se cifra con tu contraseña y queda solo en este dispositivo.</div>
@@ -275,6 +315,31 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
       <div class="mrow"><label for="s-gb">Rama</label><input id="s-gb" placeholder="main"></div>
     </div>
     <button class="tool" onclick="buscarPlantillas(true)" style="width:100%">Buscar plantillas ahora</button>
+
+    <div class="sec">Medicamentos controlados (detección automática)</div>
+    <div class="sub" style="margin:-4px 0 10px">Cuando escribas un medicamento de esta lista, se marca solo como controlado. Puedes agregar o quitar sustancias; tus cambios se sincronizan. Verifica siempre con COFEPRIS, las clasificaciones cambian.</div>
+    <div class="g2">
+      <div class="mrow"><label for="ctrl-sub">Sustancia</label><input id="ctrl-sub" placeholder="ej. clonazepam"></div>
+      <div class="mrow"><label for="ctrl-grp">Grupo</label><select id="ctrl-grp"><option value="I">Grupo I</option><option value="II">Grupo II</option><option value="III">Grupo III</option><option value="IV">Grupo IV</option><option value="antibiotico">Antibiótico</option></select></div>
+    </div>
+    <button class="tool" onclick="addCtrl()" style="width:100%">Agregar / actualizar</button>
+    <div id="ctrl-list" style="margin-top:10px;max-height:220px;overflow:auto"></div>
+
+    <div class="sec">Respaldo de pacientes y medicamentos</div>
+    <div class="sub" style="margin:-4px 0 10px">Descarga o restaura tus perfiles (pacientes y catálogo de medicamentos) en un archivo .json.</div>
+    <div class="g2">
+      <button class="tool" onclick="exportarDatos()">Exportar respaldo</button>
+      <button class="tool" onclick="document.getElementById('impFile').click()">Importar respaldo</button>
+    </div>
+    <input type="file" id="impFile" accept="application/json" style="display:none" onchange="importarDatos(this)">
+
+    <div class="sec">Sincronización en la nube (Firebase)</div>
+    <div class="sub" style="margin:-4px 0 10px">Sincroniza tus pacientes y medicamentos entre tu celular y tu compu. Entras con tu <b>cuenta de Google</b>. Los <b>pacientes se guardan cifrados</b> con la contraseña de cifrado que pongas aquí (úsala igual en todos tus dispositivos); el catálogo de medicamentos va sin cifrar.</div>
+    <div class="mrow"><label for="fb-config">Config de Firebase (JSON)</label><textarea id="fb-config" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","appId":"..."}' style="min-height:90px;font-family:monospace;font-size:13px">{"apiKey":"AIzaSyCgoHVxV80mO550f3XaBOcTKADgiRRfmu0","authDomain":"recetas-60a64.firebaseapp.com","projectId":"recetas-60a64","storageBucket":"recetas-60a64.firebasestorage.app","messagingSenderId":"411663295021","appId":"1:411663295021:web:9882cc6abc399e910e0ea4"}</textarea></div>
+    <div class="mrow"><label for="fb-enc">Contraseña para cifrar pacientes <span class="hint">(la misma en todos tus dispositivos)</span></label><input id="fb-enc" type="password" autocomplete="new-password"></div>
+    <button class="tool" onclick="fbConnect()" style="width:100%">Conectar con Google y sincronizar</button>
+    <button class="tool" onclick="fbLogout()" style="width:100%;margin-top:8px">Cerrar sesión</button>
+    <div id="fb-msg" class="sub" style="margin-top:8px"></div>
 
     <div class="mfoot">
       <button class="btn ghost" onclick="resetSettings()">Restaurar</button>
@@ -326,6 +391,7 @@ function openSettings(){
   $('s-tamano').value = S.tamano||'media';
   $('s-dir').value=S.direccion; $('s-tel').value=S.telefono;
   $('s-gu').value=S.gitUser; $('s-gr').value=S.gitRepo; $('s-gf').value=S.gitFolder; $('s-gb').value=S.gitBranch;
+  renderCtrlList();
   $('modal').classList.add('open');
 }
 function closeSettings(){ $('modal').classList.remove('open'); }
@@ -396,19 +462,49 @@ function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 
 // ---- medicamentos ----
 let medId=0;
-function addMed(name,ind,ctrl){
+const UNIDADES=['tabletas','cápsulas','comprimidos','mL','parches','ampolletas','sobres','gotas','óvulos','supositorios'];
+function addMed(name,ind,ctrl,qty,pcs,unit){
   medId++;
+  const unopts=UNIDADES.map(u=>'<option'+(u===unit?' selected':'')+'>'+u+'</option>').join('');
   const div=document.createElement('div'); div.className='medrow';
   div.innerHTML='<button class="rm" title="Quitar" onclick="this.parentElement.remove();sync()">✕</button>'+
     '<div class="mtag">Medicamento</div>'+
-    '<div class="field"><input class="m-name" placeholder="Medicamento y presentación (ej. Metilfenidato 10 mg)" value="'+esc(name)+'"></div>'+
+    '<div class="field"><input class="m-name" list="med-cat" placeholder="Medicamento y presentación (ej. Metilfenidato 10 mg)" value="'+esc(name)+'"></div>'+
     '<div class="field"><input class="m-ind" placeholder="Indicación (ej. Tomar 1 tableta VO c/24 hrs a las 07:00 hrs)" value="'+esc(ind)+'"></div>'+
-    '<label class="ctrlbox"><input type="checkbox" class="m-ctrl"'+(ctrl?' checked':'')+'> Medicamento controlado (receta aparte)</label>';
+    '<div class="qtyrow"><input class="m-qty" type="number" min="1" step="1" inputmode="numeric" placeholder="Cajas" value="'+(qty?String(qty):'')+'"><span class="qtyunit">caja(s) de</span>'+
+      '<input class="m-pcs" type="number" min="1" step="1" inputmode="numeric" placeholder="Piezas" value="'+(pcs?String(pcs):'')+'">'+
+      '<select class="m-unit">'+unopts+'</select></div>'+
+    '<label class="ctrlbox"><input type="checkbox" class="m-ctrl"'+(ctrl?' checked':'')+'> Medicamento controlado (receta aparte)</label>'+
+    '<span class="grp-badge" style="display:none"></span>';
   $('meds').appendChild(div);
-  div.querySelectorAll('input').forEach(i=>i.addEventListener('input',sync));
+  div.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',sync));
   div.querySelector('.m-ctrl').addEventListener('change',sync);
+  div.querySelector('.m-name').addEventListener('input',()=>{ detectRow(div); });
+  div.querySelector('.m-name').addEventListener('change',()=>{ autoFillMed(div); detectRow(div); });
+  div.querySelector('.m-name').addEventListener('blur',()=>saveMedFromRow(div));
+  if(name) detectRow(div);
   sync();
 }
+// número a letra (femenino para "caja"): 0-999
+function numLetraF(n){
+  n=parseInt(n,10); if(isNaN(n)||n<0) return '';
+  const U=['cero','una','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez','once','doce','trece','catorce','quince','dieciséis','diecisiete','dieciocho','diecinueve','veinte'];
+  const D=['','','veinti','treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
+  if(n<=20) return U[n];
+  if(n<30){ const u=n-20; return u===0?'veinte':('veinti'+(u===1?'una':U[u])); }
+  if(n<100){ const d=Math.floor(n/10),u=n%10; return D[d]+(u? ' y '+(u===1?'una':U[u]) : ''); }
+  if(n===100) return 'cien';
+  if(n<1000){ const c=Math.floor(n/100),r=n%100; const C=['','ciento','doscientas','trescientas','cuatrocientas','quinientas','seiscientas','setecientas','ochocientas','novecientas']; return C[c]+(r? ' '+numLetraF(r):''); }
+  return ''+n;
+}
+function medQtyText(qty,pcs,unit){
+  const n=parseInt(qty,10); if(isNaN(n)||n<1) return '';
+  let s=n+' ('+numLetraF(n)+') '+(n===1?'caja':'cajas');
+  const p=parseInt(pcs,10);
+  if(!isNaN(p)&&p>=1) s+=' de '+p+' '+(unit||'tabletas');
+  return s;
+}
+function rowQtyText(row){ return medQtyText(row.querySelector('.m-qty').value, row.querySelector('.m-pcs')?row.querySelector('.m-pcs').value:'', row.querySelector('.m-unit')?row.querySelector('.m-unit').value:''); }
 
 function edadTxt(){
   const e=$('edad').value.trim(); if(!e) return '';
@@ -416,6 +512,14 @@ function edadTxt(){
 }
 function sync(){
   $('p-nombre').textContent = $('nombre').value.trim() || '—';
+  // ¿hay algún medicamento controlado?
+  const hayCtrl=[...document.querySelectorAll('#meds .medrow')].some(r=>r.querySelector('.m-ctrl').checked &&
+    (r.querySelector('.m-name').value.trim()||r.querySelector('.m-ind').value.trim()));
+  // domicilio (SOLO si controlado, para proteger al paciente) / diagnóstico (si está)
+  const dom=$('dom').value.trim(), dx=$('dx').value.trim();
+  const domShow=$('dom-show') && $('dom-show').checked;
+  $('p-dom').style.display = (dom && (hayCtrl || domShow))? '' : 'none'; $('p-dom-t').textContent = dom;
+  $('p-dx').style.display  = dx?  '' : 'none'; $('p-dx-t').textContent  = dx;
   // fechas / edad inteligente
   let fh='<div>Fecha: '+ (fmt($('fecha').value)||'—') +'</div>';
   const dob=$('fnac').value, et=edadTxt();
@@ -426,22 +530,26 @@ function sync(){
   let html=''; let nCtrl=0, nNorm=0;
   document.querySelectorAll('#meds .medrow').forEach(row=>{
     const n=row.querySelector('.m-name').value.trim(), ind=row.querySelector('.m-ind').value.trim();
+    const qty=rowQtyText(row);
     if(!n && !ind) return;
     const isC=row.querySelector('.m-ctrl').checked; if(isC)nCtrl++; else nNorm++;
     html+='<div class="med'+(isC?' ctrl':'')+'"><div class="l1"><span class="dash">–</span><span class="mname">'+esc(n)+'</span></div>';
     if(ind) html+='<div class="mind">'+esc(ind)+'</div>';
+    if(qty) html+='<div class="mind">Cantidad: '+esc(qty)+'</div>';
     html+='</div>';
   });
   const nota=$('nota').value.trim(); if(nota) html+='<div class="nota">'+esc(nota)+'</div>';
   $('p-body').innerHTML=html; autofit();
-  // banner: cuántas recetas se generarán
+  // banner: cuántas recetas + sugerencia de copia retenida
   const info=$('recinfo'); const total=(nNorm>0?1:0)+nCtrl;
-  if(nCtrl>0 && total>1){
-    info.style.display='block';
-    info.textContent='Se generarán '+total+' recetas: '+(nNorm>0?('1 general ('+nNorm+' medicamento'+(nNorm>1?'s':'')+') + '):'')+nCtrl+' controlada'+(nCtrl>1?'s':'')+' (una por medicamento). El PDF sale con '+total+' hojas.';
-  } else info.style.display='none';
+  const retiene=[...document.querySelectorAll('#meds .medrow')].some(r=>r.dataset.ret==='1' && (r.querySelector('.m-name').value.trim()||r.querySelector('.m-ind').value.trim()));
+  let msg='';
+  if(nCtrl>0 && total>1) msg='Se generarán '+total+' recetas: '+(nNorm>0?('1 general ('+nNorm+' medicamento'+(nNorm>1?'s':'')+') + '):'')+nCtrl+' controlada'+(nCtrl>1?'s':'')+' (una por medicamento). El PDF sale con '+total+' hojas.';
+  if(retiene) msg+=(msg?' ':'')+'📄 La farmacia retiene una copia: imprime 2 (una para la farmacia y una para el paciente).';
+  if(msg){ info.style.display='block'; info.textContent=msg; } else info.style.display='none';
 }
-['nombre','edad','nota'].forEach(id=>$(id).addEventListener('input',sync));
+['nombre','edad','nota','dom','dx'].forEach(id=>$(id).addEventListener('input',sync));
+$('dom-show').addEventListener('change',sync);
 
 function autofit(){
   const box=$('p-body'); box.style.fontSize='';
@@ -456,7 +564,17 @@ function fitLine(el,maxFrac){
 }
 function fitAll(){
   fitLine($('h-titulo'),0.41); fitLine($('h-l1'),0.41); fitLine($('h-l2'),0.41); fitLine($('h-l3'),0.41);
-  fitLine($('f-dir'),0.60); fitLine($('f-tel'),0.34); fitLine($('p-sname'),0.5); updateRule();
+  fitLine($('f-dir'),0.60); fitLine($('f-tel'),0.34); fitLine($('p-sname'),0.5); fitPac(); updateRule();
+}
+function fitPac(){
+  const pac=$('r-pac'), trat=document.querySelector('.r-trat'); if(!pac||!trat) return;
+  pac.style.fontSize='';
+  const limit=trat.offsetTop - $('receta').clientHeight*0.015;
+  let g=0;
+  while(pac.offsetTop+pac.offsetHeight>limit && g<40){
+    const fs=parseFloat(getComputedStyle(pac).fontSize); if(fs<=8) break;
+    pac.style.fontSize=(fs-0.6)+'px'; g++;
+  }
 }
 function placeRule(){ /* la línea ahora va en flujo, siempre debajo del nombre */ }
 function updateRule(){
@@ -486,8 +604,9 @@ function medGroups(){
   const ctrl=[], normal=[];
   document.querySelectorAll('#meds .medrow').forEach(row=>{
     const n=row.querySelector('.m-name').value.trim(), ind=row.querySelector('.m-ind').value.trim();
+    const qty=rowQtyText(row);
     if(!n && !ind) return;
-    (row.querySelector('.m-ctrl').checked?ctrl:normal).push({n,ind});
+    (row.querySelector('.m-ctrl').checked?ctrl:normal).push({n,ind,qty});
   });
   return {normal,ctrl};
 }
@@ -496,6 +615,7 @@ function medBodyHTML(meds,nota){
   meds.forEach(m=>{
     html+='<div class="med"><div class="l1"><span class="dash">–</span><span class="mname">'+esc(m.n)+'</span></div>';
     if(m.ind) html+='<div class="mind">'+esc(m.ind)+'</div>';
+    if(m.qty) html+='<div class="mind">Cantidad: '+esc(m.qty)+'</div>';
     html+='</div>';
   });
   if(nota) html+='<div class="nota">'+esc(nota)+'</div>';
@@ -507,6 +627,35 @@ function buildRecetas(){
   ctrl.forEach((m,i)=> list.push(medBodyHTML([m], (!normal.length && i===0)?nota:'')));
   if(!list.length) list.push(medBodyHTML([],nota));
   return list;
+}
+// candado: para controlados exige fecha nac., domicilio, diagnóstico y cantidad por medicamento
+function validarControlados(){
+  const rows=[...document.querySelectorAll('#meds .medrow')];
+  const hayCtrl=rows.some(r=>r.querySelector('.m-ctrl').checked &&
+    (r.querySelector('.m-name').value.trim()||r.querySelector('.m-ind').value.trim()));
+  document.querySelectorAll('.err').forEach(e=>e.classList.remove('err'));
+  if(!hayCtrl) return {ok:true};
+  const faltan=[];
+  if(!$('fnac').value){ $('fnac').classList.add('err'); faltan.push('Fecha de nacimiento'); }
+  if(!$('dom').value.trim()){ $('dom').classList.add('err'); faltan.push('Domicilio del paciente'); }
+  let faltaQty=false;
+  rows.forEach(r=>{
+    if(!r.querySelector('.m-ctrl').checked) return;
+    const named=r.querySelector('.m-name').value.trim()||r.querySelector('.m-ind').value.trim();
+    const q=parseInt(r.querySelector('.m-qty').value,10);
+    if(named && (!q||q<1)){ r.querySelector('.m-qty').classList.add('err'); faltaQty=true; }
+  });
+  if(faltaQty) faltan.push('Cantidad (cajas) de cada medicamento controlado');
+  return {ok:faltan.length===0, faltan};
+}
+function bloqueoControlados(){
+  const v=validarControlados();
+  if(!v.ok){
+    alert('Para medicamento controlado la receta debe incluir:\n\n• '+v.faltan.join('\n• ')+'\n\nCompleta los campos resaltados en rojo.');
+    const first=document.querySelector('.err'); if(first) first.scrollIntoView({behavior:'smooth',block:'center'});
+    return true;
+  }
+  return false;
 }
 // renderiza el receta con un cuerpo específico (para cada hoja) y restaura la vista previa
 async function renderBody(bodyHTML){
@@ -531,7 +680,7 @@ async function render(){
   return canvas.toDataURL('image/jpeg',0.92);
 }
 async function hacerPDF(modo){
-  sync(); const spin=$('spin'); const recetas=buildRecetas();
+  sync(); if(bloqueoControlados()) return; guardarPacienteActual(); document.querySelectorAll("#meds .medrow").forEach(saveMedFromRow); const spin=$("spin"); const recetas=buildRecetas();
   $('spinTxt').textContent=(modo==='share'?'Preparando para compartir…':'Generando PDF…')+(recetas.length>1?' ('+recetas.length+' hojas)':''); spin.style.display='flex';
   try{
     const {jsPDF}=window.jspdf; const carta=S.tamano==='carta';
@@ -553,7 +702,7 @@ async function hacerPDF(modo){
   finally{ spin.style.display='none'; }
 }
 async function imprimir(){
-  sync(); const spin=$('spin'); const recetas=buildRecetas();
+  sync(); if(bloqueoControlados()) return; guardarPacienteActual(); document.querySelectorAll("#meds .medrow").forEach(saveMedFromRow); const spin=$("spin"); const recetas=buildRecetas();
   $('spinTxt').textContent='Preparando impresión…'; spin.style.display='flex';
   try{
     const carta=S.tamano==='carta';
@@ -573,13 +722,14 @@ async function imprimir(){
 function fillDemo(){
   $('nombre').value='Lorem Ipsum';
   $('fnac').value='1975-12-31'; $('edad').value=calcAge('1975-12-31',$('fecha').value)||''; $('nota').value='';
+  $('dom').value='Av. Reforma #123, Col. Centro, Mexicali, B.C.'; $('dx').value='Trastorno por déficit de atención';
   $('meds').innerHTML=''; medId=0;
-  addMed('Metilfenidato 10 mg','Tomar 1 tableta VO c/24 hrs a las 07:00 hrs', true);
-  addMed('Bupropión 150 mg','Tomar 1 tableta VO c/24 hrs por 30 días', true);
-  addMed('Paracetamol 500 mg','Tomar 1 tableta VO c/8 hrs si hay dolor', false);
-  addMed('Loratadina/Ambroxol','Tomar 10 mL VO c/12 hrs por 5 días', false);
+  addMed('Metilfenidato 10 mg','Tomar 1 tableta VO c/24 hrs a las 07:00 hrs', true, 1, 30, 'tabletas');
+  addMed('Bupropión 150 mg','Tomar 1 tableta VO c/24 hrs por 30 días', true, 2, 30, 'tabletas');
+  addMed('Paracetamol 500 mg','Tomar 1 tableta VO c/8 hrs si hay dolor', false, 1, 20, 'tabletas');
+  addMed('Loratadina/Ambroxol','Tomar 10 mL VO c/12 hrs por 5 días', false, 1, 120, 'mL');
 }
-function limpiar(){ $('nombre').value=''; $('fnac').value=''; $('edad').value=''; $('nota').value=''; $('meds').innerHTML=''; medId=0; addMed(); $('nombre').focus(); }
+function limpiar(){ $('nombre').value=''; $('fnac').value=''; $('edad').value=''; $('nota').value=''; $('dom').value=''; $('dx').value=''; document.querySelectorAll('.err').forEach(e=>e.classList.remove('err')); $('meds').innerHTML=''; medId=0; addMed(); $('nombre').focus(); }
 function toggleTheme(){ const cur=document.documentElement.getAttribute('data-theme');
   const dark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
   document.documentElement.setAttribute('data-theme',dark?'light':'dark'); }
@@ -663,11 +813,176 @@ async function initFirma(){
   applyFirma();
 }
 
+// ===== Perfiles: pacientes y catálogo de medicamentos (local + nube opcional) =====
+const dbGet=k=>{ try{return JSON.parse(localStorage.getItem(k)||'{}')}catch(e){return {}} };
+const dbSet=(k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v))}catch(e){} };
+const norm=s=>(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+function pacientes(){ return dbGet('receta_pacientes'); }
+function medsCat(){ return dbGet('receta_meds'); }
+function refreshPacCat(){ const dl=$('pac-cat'); if(dl) dl.innerHTML=Object.values(pacientes()).map(p=>'<option value="'+esc(p.nombre)+'"></option>').join(''); }
+function refreshMedCat(){ const dl=$('med-cat'); if(dl) dl.innerHTML=Object.values(medsCat()).map(m=>'<option value="'+esc(m.nombre)+'"></option>').join(''); }
+function autoFillPaciente(){ const p=pacientes()[norm($('nombre').value)]; if(!p) return;
+  if(p.fnac){ $('fnac').value=p.fnac; const a=calcAge(p.fnac,$('fecha').value); if(a!=null)$('edad').value=a; }
+  if(p.dom){ $('dom').value=p.dom; } sync(); }
+function guardarPacienteActual(){ const nombre=$('nombre').value.trim(); if(!nombre) return;
+  const all=pacientes(); all[norm(nombre)]={nombre, fnac:$('fnac').value||'', dom:$('dom').value.trim()||'', ts:Date.now()};
+  dbSet('receta_pacientes',all); refreshPacCat(); cloudPush('pacientes'); }
+function autoFillMed(row){ const m=medsCat()[norm(row.querySelector('.m-name').value)]; if(!m) return;
+  const ind=row.querySelector('.m-ind'), pcs=row.querySelector('.m-pcs'), unit=row.querySelector('.m-unit'), ctrl=row.querySelector('.m-ctrl');
+  if(m.ind && !ind.value) ind.value=m.ind;
+  if(m.pcs && !pcs.value) pcs.value=m.pcs;
+  if(m.unit) unit.value=m.unit;
+  if(m.ctrl) ctrl.checked=true;
+  sync(); }
+function saveMedFromRow(row){ const nombre=row.querySelector('.m-name').value.trim(); if(!nombre) return;
+  const all=medsCat(); all[norm(nombre)]={nombre, ind:row.querySelector('.m-ind').value.trim()||'', pcs:row.querySelector('.m-pcs').value||'', unit:row.querySelector('.m-unit').value||'', ctrl:row.querySelector('.m-ctrl').checked, ts:Date.now()};
+  dbSet('receta_meds',all); refreshMedCat(); cloudPush('meds'); }
+$('nombre').addEventListener('change',autoFillPaciente);
+$('nombre').addEventListener('blur',autoFillPaciente);
+// exportar / importar respaldo
+function exportarDatos(){
+  const data={pacientes:pacientes(), meds:medsCat(), settings:LS.get('receta_settings',{})};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='respaldo-recetas.json'; a.click();
+}
+function importarDatos(input){
+  const f=input.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result);
+    if(d.pacientes) dbSet('receta_pacientes', Object.assign(pacientes(), d.pacientes));
+    if(d.meds) dbSet('receta_meds', Object.assign(medsCat(), d.meds));
+    refreshPacCat(); refreshMedCat(); cloudPush('pacientes'); cloudPush('meds');
+    alert('Respaldo importado.'); }catch(e){ alert('Archivo no válido.'); } };
+  r.readAsText(f); input.value='';
+}
+// puente a la nube (Firebase); no-op si no está configurado
+function cloudPush(){ try{ if(window.cloudSync) window.cloudSync.push(); }catch(e){} }
+// gestión de la lista de controlados (overrides del usuario)
+const GRP_LABEL={'I':'Grupo I','II':'Grupo II','III':'Grupo III','IV':'Grupo IV','antibiotico':'Antibiótico'};
+function addCtrl(){ const sub=norm($('ctrl-sub').value), grp=$('ctrl-grp').value; if(!sub) return;
+  const u=dbGet('receta_ctrl'); u[sub]=grp; dbSet('receta_ctrl',u); $('ctrl-sub').value=''; renderCtrlList(); refreshDetectAll(); cloudPush(); }
+function removeCtrl(sub){ const u=dbGet('receta_ctrl'); if(CTRL_BASE[sub]!==undefined) u[sub]='__del__'; else delete u[sub]; dbSet('receta_ctrl',u); renderCtrlList(); refreshDetectAll(); cloudPush(); }
+function renderCtrlList(){ const box=$('ctrl-list'); if(!box) return; const list=ctrlList();
+  const keys=Object.keys(list).sort(); box.innerHTML=keys.map(k=>'<div class="ctrl-item"><span class="g">'+(GRP_LABEL[list[k]]||list[k])+'</span><span>'+esc(k)+'</span><button class="x" title="Quitar" onclick="removeCtrl(\''+k.replace(/'/g,"")+'\')">✕</button></div>').join(''); }
+function refreshDetectAll(){ document.querySelectorAll('#meds .medrow').forEach(r=>detectRow(r)); }
+
+// ===== Detección de medicamentos controlados (por principio activo) =====
+const CTRL_BASE={
+  // Grupo I — estupefacientes
+  'morfina':'I','fentanilo':'I','fentanil':'I','oxicodona':'I','hidromorfona':'I','metadona':'I','buprenorfina':'I','tapentadol':'I','hidrocodona':'I','nalbufina':'I','meperidina':'I','petidina':'I','sufentanilo':'I','remifentanilo':'I','codeina':'I',
+  // Grupo II — psicotrópicos alto riesgo
+  'metilfenidato':'II','anfetamina':'II','dextroanfetamina':'II','lisdexanfetamina':'II','metanfetamina':'II','secobarbital':'II','amobarbital':'II','pentobarbital':'II','fentermina':'II','nabilona':'II',
+  // Grupo III
+  'fenobarbital':'III','tramadol':'III','bupropion':'III','pseudoefedrina':'III','ketamina':'III',
+  // Grupo IV — benzodiacepinas y afines
+  'diazepam':'IV','alprazolam':'IV','clonazepam':'IV','lorazepam':'IV','midazolam':'IV','bromazepam':'IV','clobazam':'IV','clordiazepoxido':'IV','flurazepam':'IV','temazepam':'IV','nitrazepam':'IV','oxazepam':'IV','zolpidem':'IV','zopiclona':'IV','eszopiclona':'IV','clonixinato':'','ketazolam':'IV',
+  // Antibióticos (no es receta aparte; solo se retiene copia)
+  'amoxicilina':'antibiotico','ampicilina':'antibiotico','penicilina':'antibiotico','dicloxacilina':'antibiotico','azitromicina':'antibiotico','claritromicina':'antibiotico','eritromicina':'antibiotico','ciprofloxacino':'antibiotico','levofloxacino':'antibiotico','moxifloxacino':'antibiotico','ofloxacino':'antibiotico','norfloxacino':'antibiotico','ceftriaxona':'antibiotico','cefalexina':'antibiotico','cefuroxima':'antibiotico','cefixima':'antibiotico','cefaclor':'antibiotico','cefdinir':'antibiotico','cefpodoxima':'antibiotico','clindamicina':'antibiotico','metronidazol':'antibiotico','trimetoprim':'antibiotico','sulfametoxazol':'antibiotico','doxiciclina':'antibiotico','tetraciclina':'antibiotico','gentamicina':'antibiotico','amikacina':'antibiotico','vancomicina':'antibiotico','linezolid':'antibiotico','nitrofurantoina':'antibiotico','fosfomicina':'antibiotico','rifampicina':'antibiotico'
+};
+function ctrlList(){ const u=dbGet('receta_ctrl'); const m=Object.assign({},CTRL_BASE); Object.keys(u).forEach(k=>{ if(u[k]==='__del__') delete m[k]; else m[k]=u[k]; }); return m; }
+const GRP_CTRL=['I','II','III','IV'];              // se auto-marcan como controlado
+const GRP_RETIENE=['III','IV','antibiotico'];      // se retiene copia -> sugerir 2 copias
+function detectGrupo(nombre){ const n=norm(nombre); if(!n) return null; const list=ctrlList(); let best=null;
+  for(const sub in list){ if(sub && n.indexOf(sub)>=0){ if(!best || sub.length>best.sub.length) best={sub,grupo:list[sub]}; } }
+  return best; }
+function detectRow(row){
+  const d=detectGrupo(row.querySelector('.m-name').value);
+  const badge=row.querySelector('.grp-badge'), ctrl=row.querySelector('.m-ctrl');
+  row.dataset.grp=''; row.dataset.ret='';
+  if(!d){ if(badge){badge.style.display='none';badge.textContent='';} return; }
+  row.dataset.grp=d.grupo;
+  if(d.grupo==='antibiotico'){
+    row.dataset.ret='1';
+    if(badge){ badge.style.display=''; badge.className='grp-badge anti'; badge.textContent='Antibiótico — la farmacia retiene copia'; }
+  } else {
+    if(GRP_CTRL.indexOf(d.grupo)>=0) ctrl.checked=true;   // auto-marca
+    if(GRP_RETIENE.indexOf(d.grupo)>=0) row.dataset.ret='1';
+    if(badge){ badge.style.display=''; badge.className='grp-badge ctrlg'; badge.textContent='Grupo '+d.grupo+(row.dataset.ret?' — se retiene copia':''); }
+  }
+  sync();
+}
+
+// ===== Firebase (sincronización) =====
+let fbApp=null, fbDb=null, fbUser=null, FB_PW='';
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+async function loadFirebase(){
+  if(window.firebase && firebase.firestore) return;
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
+}
+function mergeByTs(local,remote){ const out=Object.assign({},local); Object.keys(remote||{}).forEach(k=>{ if(!out[k] || (remote[k].ts||0)>(out[k].ts||0)) out[k]=remote[k]; }); return out; }
+async function fbPull(){
+  if(!fbUser||!fbDb) return;
+  const snap=await fbDb.collection('users').doc(fbUser.uid).get();
+  if(!snap.exists) return; const d=snap.data();
+  if(d.meds){ let rem={}; try{rem=JSON.parse(d.meds);}catch(e){} dbSet('receta_meds', mergeByTs(medsCat(),rem)); refreshMedCat(); }
+  if(d.ctrl){ let rem={}; try{rem=JSON.parse(d.ctrl);}catch(e){} dbSet('receta_ctrl', Object.assign(dbGet('receta_ctrl'),rem)); if($('ctrl-list')) renderCtrlList(); refreshDetectAll(); }
+  if(d.pacientes){ try{ const dec=await decSig(d.pacientes,FB_PW); const rem=JSON.parse(dec); dbSet('receta_pacientes', mergeByTs(pacientes(),rem)); refreshPacCat(); }catch(e){ console.warn('pacientes: contraseña no coincide',e); } }
+}
+async function fbPush(){
+  if(!fbUser||!fbDb) return;
+  const encPac=await encSig(JSON.stringify(pacientes()),FB_PW);
+  await fbDb.collection('users').doc(fbUser.uid).set({ meds:JSON.stringify(medsCat()), ctrl:JSON.stringify(dbGet('receta_ctrl')), pacientes:encPac, ts:Date.now() },{merge:true});
+}
+function fbInit(cfgTxt){ let cfg=JSON.parse(cfgTxt); if(!fbApp){ fbApp=firebase.initializeApp(cfg); fbDb=firebase.firestore(); } }
+async function fbConnect(){
+  const msg=$('fb-msg');
+  const cfgTxt=$('fb-config').value.trim(), enc=$('fb-enc').value;
+  if(!cfgTxt){ if(msg)msg.textContent='Pega la config de Firebase.'; return; }
+  if(!enc){ if(msg)msg.textContent='Pon una contraseña para cifrar los pacientes.'; return; }
+  try{ JSON.parse(cfgTxt); }catch(e){ if(msg)msg.textContent='La config no es JSON válido.'; return; }
+  if(msg)msg.textContent='Conectando con Google…';
+  try{
+    await loadFirebase(); fbInit(cfgTxt);
+    const provider=new firebase.auth.GoogleAuthProvider();
+    let cred=null;
+    try{ cred=await firebase.auth().signInWithPopup(provider); }
+    catch(e){ // popup bloqueado (común en móvil) -> redirección
+      LS.set('receta_fb',{cfg:cfgTxt}); try{ localStorage.setItem('receta_fb_enc',enc); }catch(_){}
+      await firebase.auth().signInWithRedirect(provider); return;
+    }
+    fbUser=cred.user; FB_PW=enc;
+    LS.set('receta_fb',{cfg:cfgTxt}); try{ localStorage.setItem('receta_fb_enc',enc); }catch(e){}
+    window.cloudSync={push:fbPush, pull:fbPull};
+    await fbPull(); await fbPush();
+    if(msg)msg.textContent='✓ Conectado como '+(fbUser.email||fbUser.uid)+' y sincronizado.';
+  }catch(e){ console.error(e); if(msg)msg.textContent='No se pudo conectar: '+(e.message||e.code||e); }
+}
+async function fbLogout(){
+  try{ if(window.firebase&&firebase.auth) await firebase.auth().signOut(); }catch(e){}
+  fbUser=null; window.cloudSync=null;
+  try{ localStorage.removeItem('receta_fb'); localStorage.removeItem('receta_fb_enc'); }catch(e){}
+  const msg=$('fb-msg'); if(msg) msg.textContent='Sesión cerrada en este dispositivo.';
+}
+async function fbAuto(){
+  const saved=LS.get('receta_fb',null); let enc=''; try{enc=localStorage.getItem('receta_fb_enc')||'';}catch(e){}
+  if(!saved||!saved.cfg) return;
+  if($('fb-config')) $('fb-config').value=saved.cfg; if(enc && $('fb-enc')) $('fb-enc').value=enc;
+  try{
+    await loadFirebase(); fbInit(saved.cfg);
+    try{ const r=await firebase.auth().getRedirectResult(); if(r&&r.user){ fbUser=r.user; FB_PW=enc; } }catch(e){}
+    firebase.auth().onAuthStateChanged(async u=>{
+      if(u){ fbUser=u; FB_PW=enc||FB_PW; window.cloudSync={push:fbPush,pull:fbPull};
+        const msg=$('fb-msg'); if(msg) msg.textContent='✓ Conectado como '+(u.email||u.uid);
+        try{ await fbPull(); }catch(e){} }
+    });
+  }catch(e){}
+}
+
 // ---- init ----
 $('p-sname').textContent='Dr. Mario Humberto Quintero Peña';
+refreshPacCat(); refreshMedCat();
+try{ fbAuto(); }catch(e){}
 applySettings(); renderTplOptions(); addMed(); initFirma();
 try{ document.fonts.ready.then(()=>{ applySettings(); }); }catch(e){}
 window.addEventListener('load',()=>{ sync(); placeRule(); setTimeout(placeRule,400); buscarPlantillas(false); });
+
+// ---- PWA: service worker + botón instalar ----
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredPrompt=e; const b=$('installBtn'); if(b) b.style.display=''; });
+async function instalarApp(){ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; const b=$('installBtn'); if(b) b.style.display='none'; }
+window.addEventListener('appinstalled',()=>{ const b=$('installBtn'); if(b) b.style.display='none'; });
 </script>
 </body>
 </html>
